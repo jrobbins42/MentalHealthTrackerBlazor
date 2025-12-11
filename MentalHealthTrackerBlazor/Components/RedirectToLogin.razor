@@ -1,0 +1,35 @@
+﻿@using Microsoft.AspNetCore.Components
+@inject NavigationManager NavigationManager
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Change the target URL to the standard Blazor Identity login path
+        var loginPath = "/Identity/Account/Login";
+
+        var returnUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+
+        // Ensure we don't end up in a redirect loop if we are already trying to access a login page path
+        if (returnUrl.Contains(loginPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (string.IsNullOrEmpty(returnUrl) || returnUrl == "/")
+        {
+            NavigationManager.NavigateTo(loginPath, forceLoad: true);
+        }
+        else
+        {
+            // The 'forceLoad: true' is important here because the Identity pages are Razor Pages,
+            // not a Blazor component rendered within the same circuit/SPA context.
+            NavigationManager.NavigateTo($"{loginPath}?returnUrl={Uri.EscapeDataString(returnUrl)}", forceLoad: true);
+        }
+    }
+}
+
+
+
+
+
+

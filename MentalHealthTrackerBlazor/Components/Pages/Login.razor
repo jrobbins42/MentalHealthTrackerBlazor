@@ -1,0 +1,121 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@inject NavigationManager NavManager
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject IHttpContextAccessor HttpContextAccessor
+@inject EntryManager EntryManager
+@using Microsoft.AspNetCore.WebUtilities
+@using Microsoft.AspNetCore.Components.Web
+
+<h3>@Title</h3>
+
+<div class="card p-4" style="max-width: 400px;">
+    
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger">@ErrorMessage</div>
+    }
+
+    @if (isLoginMode)
+    {
+        @* Login Form HTML (Posts to server handler) *@
+        <form method="post" action="/login-handler">
+            <AntiforgeryToken />
+            <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+
+            <div class="mb-3">
+                <label for="login-username">Username</label>
+                <input type="text" id="login-username" class="form-control" name="username" required />
+            </div>
+            <div class="mb-3">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" class="form-control" name="password" required />
+            </div>
+            <button type="submit" class="btn btn-primary mb-3 w-100">Log In</button>
+        </form>
+    }
+    else
+    {
+        @* Sign Up Form HTML (Uses Blazor @onclick for client-side processing) *@
+        <div class="mb-3">
+            <label for="signup-username">Username</label>
+            <input type="text" id="signup-username" class="form-control" @bind="Username" required />
+        </div>
+        <div class="mb-3">
+            <label for="signup-password">Password</label>
+            <input type="password" id="signup-password" class="form-control" @bind="Password" required />
+        </div>
+        <button class="btn btn-success mb-3 w-100" @onclick="HandleSignup">Sign Up</button>
+    }
+
+    @* The toggle button uses Blazor @onclick binding *@
+    @if (isLoginMode)
+    {
+        <button class="btn btn-link" @onclick="ToggleMode">Need an account? Sign Up</button>
+    }
+    else
+    {
+        <button class="btn btn-link" @onclick="ToggleMode">Already have an account? Log In</button>
+    }
+</div>
+
+@code {
+    private bool isLoginMode = true;
+    private string Username;
+    private string Password;
+    private string ErrorMessage;
+    private string Title => isLoginMode ? "Log In" : "Sign Up";
+
+    private string returnUrlValue = "/mht";
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string ReturnUrl
+    {
+        get => returnUrlValue;
+        set => returnUrlValue = string.IsNullOrEmpty(value) ? "/mht" : value;
+    }
+
+    [SupplyParameterFromQuery(Name = "error")]
+    public string ErrorCode { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (ErrorCode == "invalid")
+        {
+            ErrorMessage = "Invalid username or password.";
+        }
+    }
+    
+    private void ToggleMode()
+    {
+        isLoginMode = !isLoginMode;
+        ErrorMessage = string.Empty;
+        Username = string.Empty;
+        Password = string.Empty;
+    }
+
+    // Handles the client-side signup button click using EntryManager
+    private void HandleSignup()
+    {
+        ErrorMessage = string.Empty;
+
+        if (string.IsNullOrEmpty(Username) || string.IsNullOrEmpty(Password))
+        {
+            ErrorMessage = "Please enter both username and password.";
+            return;
+        }
+
+        // Use your existing EntryManager method to register the user
+        bool success = EntryManager.RegisterUser(Username, Password);
+        
+        if (success)
+        {
+            // Optional: You could redirect them back to the login form automatically
+            ErrorMessage = "Registration successful! You can now log in.";
+            isLoginMode = true;
+        }
+        else
+        {
+            ErrorMessage = "Username already exists. Please choose another name.";
+        }
+    }
+}
