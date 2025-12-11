@@ -1,0 +1,189 @@
+﻿@page "/mht"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using MentalHealthTrackerBlazor.Data
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject EntryManager EntryManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<AuthorizeView>
+    <Authorized>
+        <h3>Create Mental Health Tracker Entry</h3>
+
+        <form @onsubmit="HandleAddSubmit" class="p-4 border rounded mb-4">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label for="date" class="form-label">Date</label>
+                    <input type="date" id="date" class="form-control" @bind="newEntry.Date" @bind:format="yyyy-MM-dd" />
+                </div>
+                <div class="col-md-1">
+                    <label for="mood" class="form-label">Mood</label>
+                    <input type="number" id="mood" class="form-control" @bind="newEntry.Mood" min="1" max="5" />
+                </div>
+                <div class="col-md-4">
+                    <label for="notes" class="form-label">Notes</label>
+                    <input type="text" id="notes" class="form-control" @bind="newEntry.Notes" />
+                </div>
+                <div class="col-md-4">
+                    <label for="triggers" class="form-label">Triggers</label>
+                    <input type="text" id="triggers" class="form-control" @bind="newEntry.Triggers" />
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Add</button>
+                </div>
+            </div>
+        </form>
+
+        @if (entries == null)
+        {
+            <p><em>Loading entries...</em></p>
+        }
+        else
+        {
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Mood</th>
+                        <th>Notes</th>
+                        <th>Triggers</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entryItem in entries)
+                    {
+                        @* Determine if the current row is the one being edited *@
+                        bool isCurrentEntryBeingEdited = (editingEntry?.EntryId == entryItem.EntryId);
+
+                        <tr>
+                            <td>@entryItem.Date.ToShortDateString()</td>
+                    
+                            @* Editable Fields (Mood, Notes, Triggers) *@
+                            @if (isCurrentEntryBeingEdited)
+                            {
+                                <td><input type="number" class="form-control form-control-sm" @bind="editingEntry.Mood" min="1" max="5" /></td>
+                                <td><textarea class="form-control form-control-sm" @bind="editingEntry.Notes"></textarea></td>
+                                <td><textarea class="form-control form-control-sm" @bind="editingEntry.Triggers"></textarea></td>
+                            }
+                            else
+                            {
+                                <td>@entryItem.Mood</td>
+                                <td>@entryItem.Notes</td>
+                                <td>@entryItem.Triggers</td>
+                            }
+                    
+                            <td>
+                                @if (isCurrentEntryBeingEdited)
+                                {
+                                    <button class="btn btn-sm btn-success" @onclick="SaveEntry">Save</button>
+                                    <button class="btn btn-sm btn-secondary" @onclick="CancelEdit">Cancel</button>
+                                }
+                                else
+                                {
+                                    @* Use entryItem.EntryId to uniquely identify which entry to edit/delete *@
+                                    <button class="btn btn-sm btn-warning" @onclick="() => StartEdit(entryItem.EntryId)">Edit</button>
+                                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteEntry(entryItem.EntryId,entryItem.UserId)">Delete</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <p>You are not authorized to view this page.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+    // Change the type back to string, as claims are strings
+    private string currentUserId;
+
+    // Initialize newEntry with default values; the UserId will be set before the ADD call
+    private MentalHealthEntry newEntry = new() { Date = DateTime.Today, Mood = 3, Notes = string.Empty, Triggers = string.Empty };
+    private List<MentalHealthEntry> entries; // Initialize to null/empty list
+    private MentalHealthEntry editingEntry = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            // Assign the claim value directly to the string field
+            currentUserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (currentUserId != null)
+            {
+                // Load entries using the ID
+                LoadEntries();
+            }
+        }
+    }
+
+    private void LoadEntries()
+    {
+        // Convert the string userId to an int before passing to the EntryManager
+        int userIdInt = int.Parse(currentUserId);
+        entries = EntryManager.GetEntries(userIdInt).OrderByDescending(e => e.Date).ToList();
+    }
+
+    private async Task HandleAddSubmit()
+    {
+        if (currentUserId != null)
+        {
+            // Assign the correct UserId from the session
+            newEntry.UserId = int.Parse(currentUserId);
+
+            EntryManager.AddMentalHealthEntry(newEntry, newEntry.UserId);
+            ResetAddForm();
+            LoadEntries(); // This is synchronous, no need for await Task.Delay or InvokeAsync
+        }
+    }
+
+    private void ResetAddForm()
+    {
+        // Reset the form for the next entry
+        newEntry = new() { UserId = int.Parse(currentUserId), Date = DateTime.Today, Mood = 3, Notes = string.Empty, Triggers = string.Empty };
+    }
+
+    private void StartEdit(int entryId)
+    {
+        var entryToEdit = entries.FirstOrDefault(e => e.EntryId == entryId);
+        if (entryToEdit != null)
+        {
+            editingEntry = (MentalHealthEntry)entryToEdit.Clone();
+        }
+    }
+
+    private void CancelEdit()
+    {
+        editingEntry = null;
+    }
+
+    private void SaveEntry()
+    {
+        if (editingEntry != null && currentUserId != null)
+        {
+            // Ensure the correct user ID is associated before saving
+            editingEntry.UserId = int.Parse(currentUserId);
+            EntryManager.UpdateMentalHealthEntry(editingEntry);
+            CancelEdit();
+            LoadEntries();
+        }
+    }
+
+    private void DeleteEntry(int entryId, int ignoredUserIdParam)
+    {
+        // Ensure we use the current session ID, not the one passed in the parameter
+        int userIdInt = int.Parse(currentUserId);
+        EntryManager.DeleteMentalHealthEntry(entryId, userIdInt);
+        LoadEntries();
+    }
+}
