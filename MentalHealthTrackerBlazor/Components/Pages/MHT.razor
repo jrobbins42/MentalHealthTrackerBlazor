@@ -20,7 +20,14 @@
                 </div>
                 <div class="col-md-1">
                     <label for="mood" class="form-label">Mood</label>
-                    <input type="number" id="mood" class="form-control" @bind="newEntry.Mood" min="1" max="5" />
+                    @* The @bind="newEntry.Mood" attribute handles the two-way data binding *@
+                    <select id="mood" class="form-select" @bind="newEntry.Mood">
+                        @* The options are generated using a loop in Blazor *@
+                        @foreach (var i in Enumerable.Range(1, 5))
+                        {
+                            <option value="@i">@i</option>
+                        }
+                    </select>
                 </div>
                 <div class="col-md-4">
                     <label for="notes" class="form-label">Notes</label>

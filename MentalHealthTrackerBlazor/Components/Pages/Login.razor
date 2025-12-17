@@ -1,4 +1,4 @@
-﻿@page "/"
+﻿@page "/"  
 @rendermode InteractiveServer
 @inject NavigationManager NavManager
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
@@ -93,7 +93,7 @@
         Password = string.Empty;
     }
 
-    // Handles the client-side signup button click using EntryManager
+    // signup with little validation 
     private void HandleSignup()
     {
         ErrorMessage = string.Empty;
@@ -104,12 +104,12 @@
             return;
         }
 
-        // Use your existing EntryManager method to register the user
+        // register user
         bool success = EntryManager.RegisterUser(Username, Password);
         
         if (success)
         {
-            // Optional: You could redirect them back to the login form automatically
+            
             ErrorMessage = "Registration successful! You can now log in.";
             isLoginMode = true;
         }
