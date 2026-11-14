@@ -9,22 +9,9 @@ hardened after a security review (see [Security notes](#security-notes)).
 
 > **Not a medical product.** This is a learning project, not a clinical tool, and it is not a
 > substitute for professional mental health care.
-<<<<<<< HEAD
 
 ## Screens
 
-### Tracker — `/mht`
-=======
->>>>>>> f7d456c748283f976ab867972bdbb78121f6b7c1
-
-![The tracker page: a create-entry form with date, mood, notes and triggers above a table of saved entries with Edit and Delete buttons](docs/screenshots/MHTCreate.png)
-
-Entries load newest first. The form across the top adds a row — date, mood from 1 to 5, notes, and
-triggers. **Edit** turns that row into inputs in place, **Delete** removes it, and neither reloads
-the page. The whole route requires a session: signed-out visitors are redirected to the login page
-with a `returnUrl`, which is then sanitised before it is followed.
-
-### Log in — `/`
 
 <img src="docs/screenshots/MHTlogin.PNG" width="480" alt="The login page, with username and password fields, a Log In button, and a sign-up link">
 <img src="docs/screenshots/MHTCreate.PNG" width="480" alt="The create entry page, with date, mood, notes and triggers fields">
