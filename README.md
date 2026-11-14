@@ -12,10 +12,8 @@ hardened after a security review (see [Security notes](#security-notes)).
 
 ## Screens
 
-
 <img src="docs/screenshots/MHTlogin.PNG" width="480" alt="The login page, with username and password fields, a Log In button, and a sign-up link">
 <img src="docs/screenshots/MHTCreate.PNG" width="480" alt="The create entry page, with date, mood, notes and triggers fields">
-
 
 Sign-up and login share this one page behind *Need an account? Sign Up*. A successful login issues
 the auth cookie and sends you to the tracker; a failed one returns here with an error.
@@ -62,6 +60,15 @@ MentalHealthTrackerBlazor/
       Logout.razor                   -- "/logout" confirmation page
     Layout/NavMenu.razor             -- navigation and log-out link
   Security/LocalUrl.cs               -- return-URL sanitiser used to block open redirects
+
+tests/
+  MentalHealthTrackerBlazor.Tests/
+    LocalUrlTests.cs                 -- open-redirect sanitiser
+    EntryManagerValidationTests.cs   -- credential gates that run before any SQL
+    MentalHealthEntryTests.cs        -- clone used by inline editing
+    EntryManagerDatabaseTests.cs     -- user scoping + hashing (needs SQL Server)
+
+.github/workflows/ci.yml             -- build and unit tests on every push
 ```
 
 ## Routes
@@ -108,9 +115,7 @@ authentication, so there is no password in the file:
 }
 ```
 
-
 Replace `.\\SQLEXPRESS` with your own server name — for LocalDB use `(localdb)\\MSSQLLocalDB`.
-
 
 ### 3. Run it
 
@@ -124,6 +129,27 @@ Then open <http://localhost:5271> (or <https://localhost:7110> for the HTTPS pro
 
 Click **Need an account? Sign Up**, create a username and password, log in, and you land on the
 tracker. Add an entry, edit a row, delete it, then log out.
+
+## Tests
+
+```bash
+dotnet test tests/MentalHealthTrackerBlazor.Tests
+```
+
+47 tests, no database required: the return-URL sanitiser, the credential validation gates that run
+before any SQL, and the entry clone used by inline editing. CI runs this suite on every push — see
+`.github/workflows/ci.yml`.
+
+Database tests cover password hashing, the plaintext-upgrade path, and per-user read, update and
+delete scoping. They need SQL Server and are skipped unless a connection string is supplied:
+
+```powershell
+$env:MHT_TEST_CONNECTION = "Server=.\SQLEXPRESS;Database=MentalHealthTracker_Test;Trusted_Connection=true;TrustServerCertificate=True;"
+dotnet test --filter Category=Integration
+```
+
+The schema is created automatically if the tables are missing, and test users are removed afterwards.
+Point it at a throwaway database, not your real one.
 
 ## Security notes
 
@@ -152,16 +178,13 @@ first:
 
 Listed honestly, because they are the interesting parts of the roadmap:
 
-- **No automated tests.** Everything so far was verified by hand: build, then exercise the sign-up,
-  login, add, edit, delete, and log-out paths.
+- **Tests cover the data and security layers, not the UI.** Sign-up, login, add, edit, delete and
+  log-out are still exercised by hand; the Blazor components themselves have no automated coverage.
 - **No login rate limiting or lockout**, so passwords can be guessed without throttling.
 - **No password strength rules** beyond non-empty and under 256 characters.
 - **Username uniqueness is checked in application code**, not by a database constraint, so two
   simultaneous sign-ups could in principle collide. A unique index on `Username` would close that.
-<<<<<<< HEAD
 - **No password reset** — a forgotten password means a dead account, with no admin route back in.
-=======
->>>>>>> f7d456c748283f976ab867972bdbb78121f6b7c1
 - **Entries are hard-deleted** — no soft delete, no history.
 - **Schema is applied by script**, not EF migrations. The `dotnet-ef` tool manifest and the EF Core
   package references are leftovers from an earlier approach and are unused at runtime.
@@ -170,13 +193,10 @@ Listed honestly, because they are the interesting parts of the roadmap:
 
 ## Roadmap
 
-- [ ] xUnit tests around `LocalUrl`, password hashing, and `EntryManager`
+- [x] xUnit tests around `LocalUrl`, password hashing, and `EntryManager`
 - [ ] A unique index on `Users.Username`
 - [ ] Login throttling and lockout
-<<<<<<< HEAD
 - [ ] Password reset flow
-=======
->>>>>>> f7d456c748283f976ab867972bdbb78121f6b7c1
 - [ ] Mood-over-time chart on the tracker page
 - [ ] Export entries to CSV
 - [ ] Account deletion and data export, for privacy
