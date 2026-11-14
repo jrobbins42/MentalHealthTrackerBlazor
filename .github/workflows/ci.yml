@@ -1,0 +1,47 @@
+name: build-and-test
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Build and run unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore tests/MentalHealthTrackerBlazor.Tests/MentalHealthTrackerBlazor.Tests.csproj
+
+      - name: Build
+        run: >
+          dotnet build tests/MentalHealthTrackerBlazor.Tests/MentalHealthTrackerBlazor.Tests.csproj
+          --configuration Release --no-restore
+
+      # Database tests need SQL Server, so they are excluded here and run locally:
+      #   MHT_TEST_CONNECTION="..." dotnet test --filter Category=Integration
+      - name: Test
+        run: >
+          dotnet test tests/MentalHealthTrackerBlazor.Tests/MentalHealthTrackerBlazor.Tests.csproj
+          --configuration Release --no-build
+          --filter "Category!=Integration"
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/**/*.trx
+          if-no-files-found: ignore
