@@ -9,10 +9,13 @@ hardened after a security review (see [Security notes](#security-notes)).
 
 > **Not a medical product.** This is a learning project, not a clinical tool, and it is not a
 > substitute for professional mental health care.
+<<<<<<< HEAD
 
 ## Screens
 
 ### Tracker — `/mht`
+=======
+>>>>>>> f7d456c748283f976ab867972bdbb78121f6b7c1
 
 ![The tracker page: a create-entry form with date, mood, notes and triggers above a table of saved entries with Edit and Delete buttons](docs/screenshots/MHTCreate.png)
 
@@ -23,7 +26,9 @@ with a `returnUrl`, which is then sanitised before it is followed.
 
 ### Log in — `/`
 
-<img src="docs/screenshots/MHTlogin.png" width="480" alt="The login page, with username and password fields, a Log In button, and a sign-up link">
+<img src="docs/screenshots/MHTlogin.PNG" width="480" alt="The login page, with username and password fields, a Log In button, and a sign-up link">
+<img src="docs/screenshots/MHTCreate.PNG" width="480" alt="The create entry page, with date, mood, notes and triggers fields">
+
 
 Sign-up and login share this one page behind *Need an account? Sign Up*. A successful login issues
 the auth cookie and sends you to the tracker; a failed one returns here with an error.
@@ -116,7 +121,11 @@ authentication, so there is no password in the file:
 }
 ```
 
+<<<<<<< HEAD
+Replace `.\\SQLEXPRESS` with your own server name — for LocalDB use `(localdb)\\MSSQLLocalDB`.
+=======
 Replace `.\SQLEXPRESS` with your own server name — for LocalDB use `(localdb)\\MSSQLLocalDB`.
+>>>>>>> f7d456c748283f976ab867972bdbb78121f6b7c1
 
 ### 3. Run it
 
@@ -164,7 +173,10 @@ Listed honestly, because they are the interesting parts of the roadmap:
 - **No password strength rules** beyond non-empty and under 256 characters.
 - **Username uniqueness is checked in application code**, not by a database constraint, so two
   simultaneous sign-ups could in principle collide. A unique index on `Username` would close that.
+<<<<<<< HEAD
 - **No password reset** — a forgotten password means a dead account, with no admin route back in.
+=======
+>>>>>>> f7d456c748283f976ab867972bdbb78121f6b7c1
 - **Entries are hard-deleted** — no soft delete, no history.
 - **Schema is applied by script**, not EF migrations. The `dotnet-ef` tool manifest and the EF Core
   package references are leftovers from an earlier approach and are unused at runtime.
@@ -176,7 +188,10 @@ Listed honestly, because they are the interesting parts of the roadmap:
 - [ ] xUnit tests around `LocalUrl`, password hashing, and `EntryManager`
 - [ ] A unique index on `Users.Username`
 - [ ] Login throttling and lockout
+<<<<<<< HEAD
 - [ ] Password reset flow
+=======
+>>>>>>> f7d456c748283f976ab867972bdbb78121f6b7c1
 - [ ] Mood-over-time chart on the tracker page
 - [ ] Export entries to CSV
 - [ ] Account deletion and data export, for privacy
