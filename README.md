@@ -116,7 +116,7 @@ authentication, so there is no password in the file:
 }
 ```
 
-Replace `.\\SQLEXPRESS` with your own server name — for LocalDB use `(localdb)\\MSSQLLocalDB`.
+Replace `.\SQLEXPRESS` with your own server name — for LocalDB use `(localdb)\\MSSQLLocalDB`.
 
 ### 3. Run it
 
