@@ -1,13 +1,21 @@
 ﻿// EntryManager.cs
 
 using MentalHealthTrackerBlazor.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.Data;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Data.SqlClient;
 
 public class EntryManager
 {
+    // PasswordHasher<TUser> is salted PBKDF2-HMAC-SHA512 (210,000 iterations by default) and needs
+    // no user object, so a shared instance is enough.
+    private static readonly IPasswordHasher<object> PasswordHasher = new PasswordHasher<object>();
+    private static readonly object HasherUser = new();
+
     private readonly string _connectionString;
 
     public EntryManager(IConfiguration configuration)
@@ -108,6 +116,28 @@ public class EntryManager
     // --- Sign Up New User ---
     public bool RegisterUser(string username, string password)
     {
+        username = username?.Trim() ?? string.Empty;
+
+        // Username column is nvarchar(50); keep oversized input out of the database.
+        if (username.Length == 0 || username.Length > 50 || string.IsNullOrEmpty(password) || password.Length > 256)
+        {
+            return false;
+        }
+        return entries;
+    }
+
+    // --- UPDATE Entry (UPDATE filtered by EntryId AND UserId) ---
+    public void UpdateMentalHealthEntry(MentalHealthEntry updatedEntry)
+    {
+        string sqlQuery = @"
+            UPDATE MentalHealthEntries
+            SET Date = @Date, Mood = @Mood, Notes = @Notes, Triggers = @Triggers
+            WHERE EntryId = @EntryId AND UserId = @UserId;
+        ";
+
+        // The password is hashed before the database is touched, so the plaintext is never stored.
+        string passwordHash = PasswordHasher.HashPassword(HasherUser, password);
+
         // First, check if the user already exists
         string checkQuery = "SELECT COUNT(*) FROM Users WHERE Username = @Username";
         using (SqlConnection connection = new SqlConnection(_connectionString))
@@ -127,12 +157,12 @@ public class EntryManager
             // Insert the new user
             string insertQuery = @"
                 INSERT INTO Users (Username, PasswordHash) 
-                VALUES (@Username, @Password);";
+                VALUES (@Username, @PasswordHash);";
 
             using (SqlCommand insertCmd = new SqlCommand(insertQuery, connection))
             {
                 insertCmd.Parameters.AddWithValue("@Username", username);
-                insertCmd.Parameters.AddWithValue("@Password", password); // Use HASHED password in a real app
+                insertCmd.Parameters.AddWithValue("@PasswordHash", passwordHash);
 
                 connection.Open();
                 insertCmd.ExecuteNonQuery();
@@ -143,24 +173,87 @@ public class EntryManager
     // --- Validate User Login ---
     public int ValidateUser(string username, string password)
     {
-        string sqlQuery = "SELECT UserId FROM Users WHERE Username = @Username AND PasswordHash = @Password";
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrEmpty(password))
+        {
+            return 0;
+        }
+
+        string sqlQuery = "SELECT TOP 1 UserId, PasswordHash FROM Users WHERE Username = @Username ORDER BY UserId";
 
         using (SqlConnection connection = new SqlConnection(_connectionString))
         using (SqlCommand command = new SqlCommand(sqlQuery, connection))
         {
             command.Parameters.AddWithValue("@Username", username);
-            command.Parameters.AddWithValue("@Password", password); // Use HASHED password in a real app
 
             connection.Open();
-            object result = command.ExecuteScalar(); // Gets the first column of the first row
 
-            if (result != null && result != DBNull.Value)
+            int userId;
+            string storedValue;
+
+            using (var reader = command.ExecuteReader())
             {
-                return Convert.ToInt32(result); // Returns the UserId if found
+                if (!reader.Read())
+                {
+                    return 0; // Returns 0 if login fails
+                }
+
+                userId = reader.GetInt32(0);
+                storedValue = reader.GetString(1);
             }
+
+            if (IsHashedPassword(storedValue))
+            {
+                var verification = PasswordHasher.VerifyHashedPassword(HasherUser, storedValue, password);
+
+                if (verification == PasswordVerificationResult.Failed)
+                {
+                    return 0;
+                }
+
+                if (verification == PasswordVerificationResult.SuccessRehashNeeded)
+                {
+                    UpdatePasswordHash(connection, userId, PasswordHasher.HashPassword(HasherUser, password));
+                }
+
+                return userId;
+            }
+
+            // Rows created before hashing was introduced still hold the plaintext password.
+            // Compare in constant time, then upgrade the row so it is never read again.
+            if (!FixedTimeEquals(storedValue, password))
+            {
+                return 0;
+            }
+
+            UpdatePasswordHash(connection, userId, PasswordHasher.HashPassword(HasherUser, password));
+            return userId;
         }
-        return 0; // Returns 0 if login fails
+    }
+
+    // ASP.NET Core Identity hashes are Base64 blobs whose first byte (the format marker) is 0x01,
+    // which always encodes to the prefix "AQAAAA".
+    private static bool IsHashedPassword(string storedValue) =>
+        storedValue.StartsWith("AQAAAA", StringComparison.Ordinal);
+
+    private static void UpdatePasswordHash(SqlConnection connection, int userId, string passwordHash)
+    {
+        const string sqlQuery = "UPDATE Users SET PasswordHash = @PasswordHash WHERE UserId = @UserId";
+
+        using var command = new SqlCommand(sqlQuery, connection);
+        command.Parameters.AddWithValue("@PasswordHash", passwordHash);
+        command.Parameters.AddWithValue("@UserId", userId);
+        command.ExecuteNonQuery();
+    }
+
+    private static bool FixedTimeEquals(string left, string right)
+    {
+        byte[] leftBytes = Encoding.UTF8.GetBytes(left);
+        byte[] rightBytes = Encoding.UTF8.GetBytes(right);
+
+        return leftBytes.Length == rightBytes.Length
+               && CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
     }
 
 }
+
 

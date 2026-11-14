@@ -6,6 +6,7 @@
 @inject EntryManager EntryManager
 @using Microsoft.AspNetCore.WebUtilities
 @using Microsoft.AspNetCore.Components.Web
+@using MentalHealthTrackerBlazor.Security
 
 <h3>@Title</h3>
 
@@ -71,7 +72,8 @@
     public string ReturnUrl
     {
         get => returnUrlValue;
-        set => returnUrlValue = string.IsNullOrEmpty(value) ? "/mht" : value;
+        // Never echo an off-site URL back into the form: the login handler would redirect to it.
+        set => returnUrlValue = LocalUrl.Sanitize(value);
     }
 
     [SupplyParameterFromQuery(Name = "error")]
