@@ -1,0 +1,14 @@
+﻿@page "/logout"
+
+<PageTitle>Log Out</PageTitle>
+
+<h3>Log Out</h3>
+
+@* Rendered as a static page so the antiforgery token can be issued. The form is a POST because a
+   GET logout can be triggered by any image tag or link prefetch. *@
+<form method="post" action="/logout-handler" class="card p-4" style="max-width: 400px;">
+    <AntiforgeryToken />
+    <p>Are you sure you want to log out?</p>
+    <button type="submit" class="btn btn-primary mb-2 w-100">Log Out</button>
+    <a href="/mht" class="btn btn-link">Cancel</a>
+</form>
