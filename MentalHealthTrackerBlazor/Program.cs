@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
-//using Microsoft.EntityFrameworkCore;
-//using Microsoft.EntityFrameworkCore.SqlServer;
 using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
