@@ -1,4 +1,11 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+@using MentalHealthTrackerBlazor.Components.Layout
+@using Microsoft.AspNetCore.Routing
+@inject NavigationManager NavManager
+
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -15,9 +22,72 @@
 </head>
 
 <body>
-    <Routes />
+   
+
+     
+    <CascadingAuthenticationState>
+        <Router AppAssembly="@typeof(App).Assembly">
+            <Found Context="routeData">
+                @* 
+              Replaced 'RouteView' with 'AuthorizeRouteView'. 
+              This component is specifically designed to handle authorization logic for routed components.
+            *@
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+
+                    @* Content displayed while authorization status is being determined (usually quick) *@
+                    <Authorizing>
+                        <p>Please wait, we are authorizing you...</p>
+                    </Authorizing>
+
+                    @* 
+                  Content displayed if the user is not authenticated or not authorized 
+                  to access the requested page (e.g., your /mht page).
+                *@
+                    <NotAuthorized>
+                        @if (context.User.Identity?.IsAuthenticated != true)
+                        {
+                            @* 
+                          You typically redirect them to a login page here.
+                          'RedirectToLogin' is a common component you'd create separately 
+                          to handle the actual navigation manager redirect.
+                        *@
+                            <RedirectToLogin />
+                        }
+                        else
+                        {
+                            @* Content for a logged-in user who lacks a specific role/policy (if configured) *@
+                            <p role="alert">You are not authorized to access this resource.</p>
+                        }
+                    </NotAuthorized>
+
+                </AuthorizeRouteView>
+            </Found>
+            <NotFound>
+                <PageTitle>Not found</PageTitle>
+                <LayoutView Layout="@typeof(MainLayout)">
+                    <p role="alert">Sorry, there's nothing at this address.</p>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </CascadingAuthenticationState>
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>
 
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

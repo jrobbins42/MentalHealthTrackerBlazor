@@ -2,7 +2,7 @@
 
 namespace MentalHealthTrackerBlazor.Data
 {
-    public class MentalHealthEntry
+    public class MentalHealthEntry : ICloneable
     {
 
         public int UserId { get; set; }
@@ -12,5 +12,8 @@ namespace MentalHealthTrackerBlazor.Data
         public int Mood { get; set; }
         public string Notes { get; set; }
         public string Triggers { get; set; }
+
+        public object Clone() => this.MemberwiseClone();
+
     }
 }

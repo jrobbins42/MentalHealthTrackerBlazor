@@ -123,6 +123,17 @@ public class EntryManager
         {
             return false;
         }
+        return entries;
+    }
+
+    // --- UPDATE Entry (UPDATE filtered by EntryId AND UserId) ---
+    public void UpdateMentalHealthEntry(MentalHealthEntry updatedEntry)
+    {
+        string sqlQuery = @"
+            UPDATE MentalHealthEntries
+            SET Date = @Date, Mood = @Mood, Notes = @Notes, Triggers = @Triggers
+            WHERE EntryId = @EntryId AND UserId = @UserId;
+        ";
 
         // The password is hashed before the database is touched, so the plaintext is never stored.
         string passwordHash = PasswordHasher.HashPassword(HasherUser, password);
